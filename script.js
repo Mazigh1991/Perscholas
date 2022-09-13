@@ -1,57 +1,107 @@
-// spacebattle in progress
-class Ship {
-    constructor(name, hull, firepower, accuracy) {
-        this.name = name;
-        this.hull = hull;
-        this.firepower = firepower;
-        this.accuracy = accuracy;
-    }
-    attack(target) {
-        if (Math.random() > this.accuracy) {
-            console.log(`${this.name} missed ${this.name} has a hull of ${this.hull}.`);
-        } else {
-            target.hull -= this.firepower
-            if (target.hull <= 0) {
-                console.log(`${this.name} destroyed ${target.name}. ${target.name}'s hull is ${target.hull}`)
-            } else{
-                console.log(`${this.name} hit ${target.name} for ${this.firepower} damage. ${target.name} has ${target.hull} hull`);
-            }
-        }
-    }
+import Deck from "./deck.js"
+
+const CARD_VALUE_MAP = {
+  "2": 2,
+  "3": 3,
+  "4": 4,
+  "5": 5,
+  "6": 6,
+  "7": 7,
+  "8": 8,
+  "9": 9,
+  "10": 10,
+  J: 11,
+  Q: 12,
+  K: 13,
+  A: 14
 }
-// Player Class
-class Player extends Ship {
-    constructor(name, hull, firepower, accuracy) {
-        super(name, hull, firepower, accuracy)
-    }
+const computerCardSlot = document.querySelector(".computer-card-slot")
+const playerCardSlot = document.querySelector(".player-card-slot")
+const computerDeckElement = document.querySelector(".computer-deck")
+const playerDeckElement = document.querySelector(".player-deck")
+const text = document.querySelector(".text")
+
+let playerDeck, computerDeck, inRound, stop
+
+document.addEventListener("click", () => {
+  if (stop) {
+    startGame()
+    return
+  }
+
+  if (inRound) {
+    cleanBeforeRound()
+  } else {
+    flipCards()
+  }
+})
+
+startGame()
+function startGame() {
+  const deck = new Deck()
+  deck.shuffle()
+
+  const deckMidpoint = Math.ceil(deck.numberOfCards / 2)
+  playerDeck = new Deck(deck.cards.slice(0, deckMidpoint))
+  computerDeck = new Deck(deck.cards.slice(deckMidpoint, deck.numberOfCards))
+  inRound = false
+  stop = false
+
+  cleanBeforeRound()
 }
-// Alien Class
-class Alien extends Ship {
-    constructor(name, hull = 3 + Math.floor(Math.random() * 3), firepower = 2 + Math.floor(Math.random() * 2), accuracy = 0.6 + Math.random() * 0.2) {
-        super(name, hull, firepower, accuracy)
-    }
+
+function cleanBeforeRound() {
+  inRound = false
+  computerCardSlot.innerHTML = ""
+  playerCardSlot.innerHTML = ""
+  text.innerText = ""
+
+  updateDeckCount()
 }
-// Player
-const player = new Player('USS Assembly', 20, 5, 0.7);
-console.log(player);
-// Alien Army
-const alienArmy = [];
-// Loop to populate army
-for (let i = 0; i < 6; i++) {
-    alienArmy.push(new Alien(`Alien${i + 1}`));
+
+function flipCards() {
+  inRound = true
+
+  const playerCard = playerDeck.pop()
+  const computerCard = computerDeck.pop()
+
+  playerCardSlot.appendChild(playerCard.getHTML())
+  computerCardSlot.appendChild(computerCard.getHTML())
+
+  updateDeckCount()
+
+  if (isRoundWinner(playerCard, computerCard)) {
+    text.innerText = "Win"
+    playerDeck.push(playerCard)
+    playerDeck.push(computerCard)
+  } else if (isRoundWinner(computerCard, playerCard)) {
+    text.innerText = "Lose"
+    computerDeck.push(playerCard)
+    computerDeck.push(computerCard)
+  } else {
+    text.innerText = "Draw"
+    playerDeck.push(playerCard)
+    computerDeck.push(computerCard)
+  }
+
+  if (isGameOver(playerDeck)) {
+    text.innerText = "You Lose!!"
+    stop = true
+  } else if (isGameOver(computerDeck)) {
+    text.innerText = "You Win!!"
+    stop = true
+  }
 }
-console.log(alienArmy)
-const battle = (player, target) => {
-    while (player.hull > 0 && target.hull > 0) {
-        player.attack(target);
-        if (target.hull > 0) {
-            target.attack(player);
-        }
-    }
+
+function updateDeckCount() {
+  computerDeckElement.innerText = computerDeck.numberOfCards
+  playerDeckElement.innerText = playerDeck.numberOfCards
 }
-const playGame = (player, target) => {
-    for (let i = 0; i < target.length; i++) {
-        battle(player, target[i]);
-    }
+
+function isRoundWinner(cardOne, cardTwo) {
+  return CARD_VALUE_MAP[cardOne.value] > CARD_VALUE_MAP[cardTwo.value]
 }
-playGame(player, alienArmy);
+
+function isGameOver(deck) {
+  return deck.numberOfCards === 0
+}
